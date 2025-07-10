@@ -1,0 +1,42 @@
+{
+  "name": "@tklein1801/logger.js",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [
+    "logger.js",
+    "logging",
+    "utility"
+  ],
+  "author": "Thorben Klein",
+  "license": "MIT",
+  "homepage": "https://github.com/tklein1801/logger.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tklein1801/logger.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tklein1801/logger.js/issues"
+  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "rimraf lib && tsc",
+    "test": "npm run format:check && vitest",
+    "test:run": "npm run format:check && vitest run",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/node": "^22.10.5",
+    "@vitest/coverage-v8": "^3.0.9",
+    "@vitest/ui": "^3.0.9",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.9"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  }
+}
