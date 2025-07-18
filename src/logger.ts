@@ -1,4 +1,4 @@
-import util from 'util';
+import util from 'node:util';
 
 import {LOG_COLORS, LOG_LEVEL_COLORS} from './config';
 import {shouldPublishLog} from './shouldPublishLog/shouldPublishLog';
