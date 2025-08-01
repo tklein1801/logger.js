@@ -68,8 +68,27 @@ export type LogFunction = (message: string, ...params: any[]) => void;
 export type LogClient = {
   [K in Lowercase<LogLevelStrings>]: LogFunction;
 } & {
+  /**
+   * Sets the log level for this logger.
+   * @param level The log level to set.
+   */
   setLogLevel: (level: LogLevel) => void;
+  /**
+   * Gets the current log level of this logger.
+   * @returns The current log level.
+   */
   getLogLevel: () => LogLevel;
+  /**
+   * Gets the name of the current log level.
+   * @param level The log level to get the name for. If not provided, the current log level will be used.
+   * @returns The name of the log level.
+   */
+  getLogLevelName: (level?: LogLevel) => string;
+  /**
+   * Creates a child logger with the same configuration as this logger.
+   * @param childOptions Options for the child logger.
+   * @returns A new LogClient instance for the child logger.
+   */
   child: (options: LogClientOptions) => LogClient;
 };
 
@@ -178,20 +197,24 @@ export function createLogger(options: LogClientOptions): LogClient {
 
   return {
     ...Object.fromEntries(LEVEL_STRINGS.map(level => [level, log(LogLevel[level.toUpperCase() as LogLevelStrings])])),
-    setLogLevel: (level: LogLevel) => {
+    setLogLevel(level: LogLevel) {
       state.level = level;
     },
-    getLogLevel: () => {
+    getLogLevel() {
       return state.level;
     },
-    child: childOptions =>
-      createLogger({
+    getLogLevelName(level: LogLevel = state.level): string {
+      return LogLevel[level];
+    },
+    child(childOptions) {
+      return createLogger({
         scope: childOptions.scope,
         disabled: childOptions.disabled ?? options.disabled,
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
         log: childOptions.log ?? options.log,
         format: childOptions.format ?? options.format,
-      }),
+      });
+    },
   } as LogClient;
 }
