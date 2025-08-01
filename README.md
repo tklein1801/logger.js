@@ -55,6 +55,7 @@ import {LogLevel, createLogger} from '@tklein1801/logger.js';
 const logger = createLogger({
   scope: 'DemoService',
   level: LogLevel.INFO,
+  // or level: getLogLevel(process.env.LOG_LEVEL as string)
 });
 
 // When creating a ChildLogger based on an already defined instance, it inherits all options set in the parent instance. These options can still be overridden when creating the child.
