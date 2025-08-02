@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {LogLevel} from '../logger';
-import {LogEntry, Transport, TransportOptions} from './transport';
+import {type LogEntry, Transport, type TransportOptions} from './transport';
 
 // Mock transport implementation for testing
 class TestTransport extends Transport {
@@ -79,11 +79,10 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       transport.flush();
 
       expect(transport.sentBatches).toHaveLength(0);
@@ -95,19 +94,17 @@ describe('Transport', () => {
       const debugLog: LogEntry = {
         level: LogLevel.DEBUG,
         message: 'Debug message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
       const errorLog: LogEntry = {
         level: LogLevel.ERROR,
         message: 'Error message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(debugLog);
-      transport.log(errorLog);
+      transport.addLogToQueue(debugLog);
+      transport.addLogToQueue(errorLog);
       transport.flush();
 
       expect(transport.sentBatches).toHaveLength(1);
@@ -123,32 +120,29 @@ describe('Transport', () => {
       const log1: LogEntry = {
         level: LogLevel.INFO,
         message: 'Message 1',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
       const log2: LogEntry = {
         level: LogLevel.INFO,
         message: 'Message 2',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
       const log3: LogEntry = {
         level: LogLevel.INFO,
         message: 'Message 3',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(log1);
+      transport.addLogToQueue(log1);
       expect(transport.sentBatches).toHaveLength(0);
 
-      transport.log(log2);
+      transport.addLogToQueue(log2);
       expect(transport.sentBatches).toHaveLength(1);
       expect(transport.sentBatches[0]).toHaveLength(2);
 
-      transport.log(log3);
+      transport.addLogToQueue(log3);
       expect(transport.sentBatches).toHaveLength(1);
 
       // Should not have sent the third log yet
@@ -165,11 +159,10 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       expect(transport.sentBatches).toHaveLength(0);
 
       // Before debounce time
@@ -187,15 +180,14 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       vi.advanceTimersByTime(400);
 
       // Add another log, should reset timer
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       vi.advanceTimersByTime(400);
       expect(transport.sentBatches).toHaveLength(0);
 
@@ -212,12 +204,11 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
+      transport.addLogToQueue(logEntry);
       expect(transport.sentBatches).toHaveLength(0);
 
       transport.flush();
@@ -231,11 +222,10 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       transport.flush();
 
       // Timer should be cancelled, no additional sends
@@ -252,11 +242,10 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      expect(() => transport.log(logEntry)).not.toThrow();
+      expect(() => transport.addLogToQueue(logEntry)).not.toThrow();
       transport.flush();
 
       expect(consoleSpy).toHaveBeenCalledWith('Transport failed to send batch:', expect.any(Error));
@@ -272,11 +261,10 @@ describe('Transport', () => {
       const logEntry: LogEntry = {
         level: LogLevel.INFO,
         message: 'Test message',
-        scope: 'test',
-        timestamp: new Date(),
+        dateTime: new Date(),
       };
 
-      transport.log(logEntry);
+      transport.addLogToQueue(logEntry);
       transport.destroy();
 
       expect(transport.sentBatches).toHaveLength(1);

@@ -106,3 +106,8 @@ const logger2 = createLogger({
   },
 });
 ```
+
+### Transports
+
+> [!IMPORTANT]
+> Es wird empfohlen vor dem Herunterfahren einer Anwendung Logs, welche aktuell noch in der Queue stecken zu transportieren, damit diese nicht verloren gehen.

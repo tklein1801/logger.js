@@ -4,7 +4,11 @@ import {LogEntry, Transport} from './transport';
  * Manages multiple transports for a logger
  */
 export class TransportManager {
-  private transports: Transport[] = [];
+  private transports: Transport[];
+
+  constructor(transports: Transport[] = []) {
+    this.transports = transports;
+  }
 
   /**
    * Adds a transport to the manager
@@ -27,28 +31,28 @@ export class TransportManager {
   /**
    * Sends a log entry to all transports
    */
-  log(entry: LogEntry): void {
-    this.transports.forEach(transport => {
-      transport.log(entry);
-    });
+  addLogToQueue(entry: LogEntry): void {
+    for (const transport of this.transports) {
+      transport.addLogToQueue(entry);
+    }
   }
 
   /**
    * Flushes all transports
    */
   flush(): void {
-    this.transports.forEach(transport => {
+    for (const transport of this.transports) {
       transport.flush();
-    });
+    }
   }
 
   /**
    * Destroys all transports and clears the list
    */
   destroy(): void {
-    this.transports.forEach(transport => {
+    for (const transport of this.transports) {
       transport.destroy();
-    });
+    }
     this.transports = [];
   }
 

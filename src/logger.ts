@@ -2,7 +2,7 @@ import util from 'util';
 
 import {LOG_COLORS, LOG_LEVEL_COLORS} from './config';
 import {shouldPublishLog} from './shouldPublishLog/shouldPublishLog';
-import {LogEntry, TransportManager} from './transport';
+import {Transport, TransportManager} from './transport';
 
 export enum LogLevel {
   FATAL = 0,
@@ -53,17 +53,19 @@ export type LogClientOptions = {
   log?: (level: LogLevel, message: string, ...args: any[]) => void;
   /**
    * Formats a log message.
+   * @param dateTime The date and time of the log entry.
    * @param level The log level of the message.
    * @param scope The scope of the logger.
    * @param message The log message. The parameters will already be resolved, so you can use it directly.
    * @param meta Optional metadata to include in the log message.
    * @returns The formatted log message.
    */
-  format?: (level: LogLevel, scope: string, message: string, meta?: LogMeta) => string;
+  format?: (dateTime: Date, level: LogLevel, scope: string, message: string, meta?: LogMeta) => string;
   /**
-   * Transport manager for handling log transports
+   * An array of transports to use for this logger.
+   * Transports are responsible for sending log messages to their final destination (e.g., console, file, network).
    */
-  transports?: TransportManager;
+  transports?: Transport[];
 };
 
 export type LogMeta = Record<string, any>;
@@ -96,14 +98,10 @@ export type LogClient = {
    */
   child: (options: LogClientOptions) => LogClient;
   /**
-   * Gets the transport manager for this logger.
-   * @returns The transport manager instance.
+   * Gets the transports associated with this logger.
+   * @returns An array of transports.
    */
-  getTransports: () => TransportManager;
-  /**
-   * Flushes all transports, sending any buffered logs immediately.
-   */
-  flush: () => void;
+  getTransports?: () => Transport[];
 };
 
 interface LogState {
@@ -117,10 +115,6 @@ interface LogState {
    * Messages below this level will not be logged.
    */
   level: LogLevel;
-  /**
-   * Transport manager for handling log transports
-   */
-  transports: TransportManager;
 }
 
 const LEVEL_STRINGS = Object.values(LogLevel)
@@ -139,13 +133,14 @@ function getPaddedLevel(level: LogLevel) {
 
 /**
  * Formats a log message with the given level, message, and scope.
+ * @param dateTime The date and time of the log entry.
  * @param level The log level.
  * @param message The log message.
  * @param scope The log scope.
  * @returns The formatted log message.
  */
-export function formatMessage(level: LogLevel, message: string, scope: string): string {
-  const timestamp = new Date().toISOString();
+export function formatMessage(dateTime: Date, level: LogLevel, message: string, scope: string): string {
+  const timestamp = dateTime.toISOString();
   const levelString = getPaddedLevel(level);
   return `${LOG_COLORS.dim}${timestamp}${LOG_COLORS.reset} ${LOG_LEVEL_COLORS[level]}${levelString}${LOG_COLORS.reset} ${LOG_COLORS.bright}[${scope}]:${LOG_COLORS.reset} ${message}`;
 }
@@ -189,8 +184,8 @@ export function createLogger(options: LogClientOptions): LogClient {
   const state: LogState = {
     isEnabled: options.disabled !== true,
     level: options.level ?? LogLevel.INFO,
-    transports: options.transports ?? new TransportManager(),
   };
+  const transportManager = new TransportManager(options.transports);
 
   function log(level: LogLevel): LogFunction {
     return (message: string, ...args: any[]) => {
@@ -202,24 +197,25 @@ export function createLogger(options: LogClientOptions): LogClient {
       // Format message like console.log with util.format
       const formattedText = args.length > 0 ? util.format(msg, ...params) : msg;
 
+      const dateTime = new Date();
       const formattedMessage = options.format
-        ? options.format(level, options.scope, formattedText, meta)
-        : formatMessage(level, formattedText, options.scope);
-
-      // Send to transports
-      const logEntry: LogEntry = {
-        level,
-        message: formattedText,
-        scope: options.scope,
-        timestamp: new Date(),
-        meta,
-      };
-      state.transports.log(logEntry);
+        ? options.format(dateTime, level, options.scope, formattedText, meta)
+        : formatMessage(dateTime, level, formattedText, options.scope);
 
       if (options.log) {
         return options.log(level, formattedMessage, meta);
       }
 
+      transportManager.addLogToQueue({
+        dateTime,
+        level,
+        message: formattedMessage,
+        meta,
+      });
+
+      // REVISIT: Wollen wir hier wirklich die Logs in der Konsole ausgeben wenn wir bereits Transporte implementiert haben?
+      // Alternativ können wir Standardmäßig einen Console-Transport hinzufügen, welcher widerrum überschrieben werden kann.
+      // Dafür wäre es sinnvoll, einem Transport einen `name` zu verpassen, damit geprüft werden kann, ob der Console-Transport bereits existiert.
       printMessage(level, formattedMessage, meta, options.hideMeta);
     };
   }
@@ -236,10 +232,7 @@ export function createLogger(options: LogClientOptions): LogClient {
       return LogLevel[level];
     },
     getTransports() {
-      return state.transports;
-    },
-    flush() {
-      state.transports.flush();
+      return options.transports || [];
     },
     child(childOptions) {
       return createLogger({
@@ -249,7 +242,6 @@ export function createLogger(options: LogClientOptions): LogClient {
         level: childOptions.level ?? state.level,
         log: childOptions.log ?? options.log,
         format: childOptions.format ?? options.format,
-        transports: childOptions.transports ?? state.transports,
       });
     },
   } as LogClient;

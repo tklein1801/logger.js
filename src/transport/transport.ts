@@ -1,20 +1,23 @@
-import {LogLevel, LogMeta} from '../logger';
+import {LogLevel, type LogMeta} from '../logger';
+import {shouldPublishLog} from '../shouldPublishLog';
 
 /**
  * Represents a log entry that will be transported
  */
-export interface LogEntry {
+export type LogEntry = {
+  dateTime: Date;
   level: LogLevel;
+  /**
+   * Formatted log message
+   */
   message: string;
-  scope: string;
-  timestamp: Date;
   meta?: LogMeta;
-}
+};
 
 /**
  * Configuration options for a transport
  */
-export interface TransportOptions {
+export type TransportOptions = {
   /**
    * The batch size for sending logs
    * @default 10
@@ -38,20 +41,20 @@ export interface TransportOptions {
    * @default true
    */
   enabled?: boolean;
-}
+};
 
 /**
  * Abstract base class for log transports
  */
 export abstract class Transport {
   protected options: Required<TransportOptions>;
-  private logBuffer: LogEntry[] = [];
+  private logQueue: LogEntry[] = [];
   private debounceTimer?: NodeJS.Timeout;
 
   constructor(options: TransportOptions = {}) {
     this.options = {
       batchSize: Math.max(1, options.batchSize ?? 10), // Ensure positive batch size
-      debounceMs: Math.max(0, options.debounceMs ?? 1000),
+      debounceMs: Math.max(0, options.debounceMs ?? 1000), // Ensure positive debounce time
       level: options.level ?? LogLevel.INFO,
       enabled: options.enabled ?? true,
     };
@@ -65,25 +68,26 @@ export abstract class Transport {
   /**
    * Adds a log entry to the transport queue
    */
-  log(entry: LogEntry): void {
+  addLogToQueue(entry: LogEntry): void {
     if (!this.options.enabled) {
       return;
     }
 
     // Check if log level meets minimum requirement
-    if (entry.level > this.options.level) {
+    if (shouldPublishLog(this.options.level, entry.level)) {
       return;
     }
 
-    this.logBuffer.push(entry);
+    this.logQueue.push(entry);
 
     // Send immediately if batch size is reached
-    if (this.logBuffer.length >= this.options.batchSize) {
+    if (this.logQueue.length >= this.options.batchSize) {
       this.flush();
       return;
     }
 
     // Otherwise, debounce the send
+    // REVISIT: Check if this has the desired effect
     this.scheduleFlush();
   }
 
@@ -109,12 +113,12 @@ export abstract class Transport {
       this.debounceTimer = undefined;
     }
 
-    if (this.logBuffer.length === 0) {
+    if (this.logQueue.length === 0) {
       return;
     }
 
-    const logsToSend = [...this.logBuffer];
-    this.logBuffer = [];
+    const logsToSend = [...this.logQueue];
+    this.logQueue = [];
 
     try {
       const result = this.sendBatch(logsToSend);
