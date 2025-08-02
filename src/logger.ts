@@ -2,6 +2,7 @@ import util from 'util';
 
 import {LOG_COLORS, LOG_LEVEL_COLORS} from './config';
 import {shouldPublishLog} from './shouldPublishLog/shouldPublishLog';
+import {LogEntry, TransportManager} from './transport';
 
 export enum LogLevel {
   FATAL = 0,
@@ -59,6 +60,10 @@ export type LogClientOptions = {
    * @returns The formatted log message.
    */
   format?: (level: LogLevel, scope: string, message: string, meta?: LogMeta) => string;
+  /**
+   * Transport manager for handling log transports
+   */
+  transports?: TransportManager;
 };
 
 export type LogMeta = Record<string, any>;
@@ -90,6 +95,15 @@ export type LogClient = {
    * @returns A new LogClient instance for the child logger.
    */
   child: (options: LogClientOptions) => LogClient;
+  /**
+   * Gets the transport manager for this logger.
+   * @returns The transport manager instance.
+   */
+  getTransports: () => TransportManager;
+  /**
+   * Flushes all transports, sending any buffered logs immediately.
+   */
+  flush: () => void;
 };
 
 interface LogState {
@@ -103,6 +117,10 @@ interface LogState {
    * Messages below this level will not be logged.
    */
   level: LogLevel;
+  /**
+   * Transport manager for handling log transports
+   */
+  transports: TransportManager;
 }
 
 const LEVEL_STRINGS = Object.values(LogLevel)
@@ -171,6 +189,7 @@ export function createLogger(options: LogClientOptions): LogClient {
   const state: LogState = {
     isEnabled: options.disabled !== true,
     level: options.level ?? LogLevel.INFO,
+    transports: options.transports ?? new TransportManager(),
   };
 
   function log(level: LogLevel): LogFunction {
@@ -186,6 +205,16 @@ export function createLogger(options: LogClientOptions): LogClient {
       const formattedMessage = options.format
         ? options.format(level, options.scope, formattedText, meta)
         : formatMessage(level, formattedText, options.scope);
+
+      // Send to transports
+      const logEntry: LogEntry = {
+        level,
+        message: formattedText,
+        scope: options.scope,
+        timestamp: new Date(),
+        meta,
+      };
+      state.transports.log(logEntry);
 
       if (options.log) {
         return options.log(level, formattedMessage, meta);
@@ -206,6 +235,12 @@ export function createLogger(options: LogClientOptions): LogClient {
     getLogLevelName(level: LogLevel = state.level): string {
       return LogLevel[level];
     },
+    getTransports() {
+      return state.transports;
+    },
+    flush() {
+      state.transports.flush();
+    },
     child(childOptions) {
       return createLogger({
         scope: childOptions.scope,
@@ -214,6 +249,7 @@ export function createLogger(options: LogClientOptions): LogClient {
         level: childOptions.level ?? state.level,
         log: childOptions.log ?? options.log,
         format: childOptions.format ?? options.format,
+        transports: childOptions.transports ?? state.transports,
       });
     },
   } as LogClient;
