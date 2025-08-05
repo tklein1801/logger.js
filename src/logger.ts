@@ -1,5 +1,4 @@
-import util from 'util';
-
+import util from 'node:util';
 import {LOG_COLORS, LOG_LEVEL_COLORS} from './config';
 import {shouldPublishLog} from './shouldPublishLog/shouldPublishLog';
 
@@ -49,6 +48,7 @@ export type LogClientOptions = {
    * }
    * ```
    */
+  // biome-ignore lint/suspicious/noExplicitAny: The log function parameters can be of any type, so we allow any here.
   log?: (level: LogLevel, message: string, ...args: any[]) => void;
   /**
    * Formats a log message.
@@ -61,8 +61,11 @@ export type LogClientOptions = {
   format?: (level: LogLevel, scope: string, message: string, meta?: LogMeta) => string;
 };
 
+// REVISIT: Maybe only support strings and numbers as metadata keys and values?
+// biome-ignore lint/suspicious/noExplicitAny: The metadata can be of any type, so we allow any here.
 export type LogMeta = Record<string, any>;
 
+// biome-ignore lint/suspicious/noExplicitAny: The log function parameters can be of any type, so we allow any here.
 export type LogFunction = (message: string, ...params: any[]) => void;
 
 export type LogClient = {
@@ -87,7 +90,7 @@ interface LogState {
 }
 
 const LEVEL_STRINGS = Object.values(LogLevel)
-  .filter(level => typeof level == 'string')
+  .filter(level => typeof level === 'string')
   .map(level => level.toLowerCase()) as Lowercase<LogLevelStrings>[];
 const MAX_LEVEL_LENGTH = Math.max(...LEVEL_STRINGS.map(l => l.length));
 
@@ -118,6 +121,8 @@ export function formatMessage(level: LogLevel, message: string, scope: string): 
  * @param args The arguments passed to the log function.
  * @returns An object containing the split log parameters.
  */
+
+// biome-ignore lint/suspicious/noExplicitAny: The arguments can be of any type, so we allow any here.
 function splitLogParams(args: any[]): {msg: string; params: any[]; meta?: LogMeta} {
   let meta: LogMeta | undefined;
   if (
@@ -141,8 +146,9 @@ export function printMessage(level: LogLevel, formattedMessage: string, meta?: L
     case LogLevel.WARN:
       meta && !hideMeta ? console.warn(formattedMessage, meta) : console.warn(formattedMessage);
       break;
-    case LogLevel.INFO:
-    case LogLevel.DEBUG:
+    // For readability, we can keep INFO and DEBUG
+    // case LogLevel.INFO:
+    // case LogLevel.DEBUG:
     default:
       meta && !hideMeta ? console.log(formattedMessage, meta) : console.log(formattedMessage);
   }
@@ -155,6 +161,7 @@ export function createLogger(options: LogClientOptions): LogClient {
   };
 
   function log(level: LogLevel): LogFunction {
+    // biome-ignore lint/suspicious/noExplicitAny: We need to allow any type for the log function parameters
     return (message: string, ...args: any[]) => {
       if (!state.isEnabled || !shouldPublishLog(state.level, level)) return;
 

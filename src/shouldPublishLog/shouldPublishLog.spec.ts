@@ -1,5 +1,4 @@
 import {describe, expect, test} from 'vitest';
-
 import {LogLevel} from '../logger';
 import {shouldPublishLog} from './shouldPublishLog';
 

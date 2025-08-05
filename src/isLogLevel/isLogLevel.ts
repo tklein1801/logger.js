@@ -7,6 +7,6 @@ import {LogLevel} from '../logger';
  */
 export function isLogLevel(str: string): str is keyof typeof LogLevel {
   return Object.keys(LogLevel)
-    .filter(key => isNaN(Number(key)))
+    .filter(key => Number.isNaN(Number(key)))
     .includes(str.toUpperCase());
 }

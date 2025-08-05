@@ -1,5 +1,4 @@
-.prettierignore
-.prettierrc
+biome.json
 ci/
 src/
 tsconfig.json
