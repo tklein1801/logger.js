@@ -105,3 +105,14 @@ const logger2 = createLogger({
   },
 });
 ```
+
+## Utils
+
+### `isLogLevel`
+
+The `isLogLevel` function checks whether a given string represents a valid log level.
+
+### `getLogLevel`
+
+The `getLogLevel` function parses a string and returns the corresponding `LogLevel` enum. The returned enum object can be used to set the client’s log level.
+
