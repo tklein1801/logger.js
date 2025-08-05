@@ -53,6 +53,7 @@ export type LogClient = {
 } & {
   setLogLevel: (level: LogLevel) => void;
   getLogLevel: () => LogLevel;
+  getLogLevelName: () => LogLevelStrings;
   child: (options: LogClientOptions) => LogClient;
 };
 
@@ -125,19 +126,23 @@ export function createLogger(options: LogClientOptions): LogClient {
 
   return {
     ...Object.fromEntries(LEVEL_STRINGS.map(level => [level, log(LogLevel[level.toUpperCase() as LogLevelStrings])])),
-    setLogLevel: (level: LogLevel) => {
+    setLogLevel(level: LogLevel) {
       state.level = level;
     },
-    getLogLevel: () => {
+    getLogLevel() {
       return state.level;
     },
-    child: childOptions =>
-      createLogger({
+    getLogLevelName() {
+      return LogLevel[state.level] as LogLevelStrings;
+    },
+    child(childOptions) {
+      return createLogger({
         label: childOptions.label,
         disabled: childOptions.disabled ?? options.disabled,
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
-      }),
+      });
+    },
   } as LogClient;
 }
 
