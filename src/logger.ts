@@ -148,6 +148,7 @@ export function createLogger(options: LogClientOptions): LogClient {
         disabled: childOptions.disabled ?? options.disabled,
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
+        transports: childOptions.transports ?? options.transports,
       });
     },
   } as LogClient;
