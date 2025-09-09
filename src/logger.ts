@@ -39,6 +39,11 @@ export type LogClientOptions = {
    * If no transports are provided, a `ConsoleTransport` will be used by default.
    */
   transports?: Transport[];
+  /**
+   * Supress the "No transports configured."-warning if no customized transports are configured for the instance.
+   * @default false
+   */
+  supressNoTransportWarning?: boolean;
 };
 
 // REVISIT: Maybe only support strings and numbers as metadata keys and values?
@@ -105,15 +110,17 @@ export function createLogger(options: LogClientOptions): LogClient {
 
   // Print warning if no transports are configured for this log-client
   if (transportManager.count === 0) {
-    printMessage(
-      LogLevel.WARN,
-      formatMessage(
-        new Date(),
+    if (!options.supressNoTransportWarning) {
+      printMessage(
         LogLevel.WARN,
-        'No transports configured. Logs will be sent to the console by default.',
-        options.label,
-      ),
-    );
+        formatMessage(
+          new Date(),
+          LogLevel.WARN,
+          'No transports configured. Logs will be sent to the console by default.',
+          options.label,
+        ),
+      );
+    }
 
     transportManager.add(
       new ConsoleTransport({
