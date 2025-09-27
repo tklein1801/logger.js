@@ -1,6 +1,5 @@
 import debounce from 'lodash.debounce';
-import {LogLevel, type LogMeta} from '../logger';
-import {shouldPublishLog} from '../shouldPublishLog';
+import {LogLevel, type LogMeta, shouldPublishLog} from '../logger';
 
 /**
  * Represents a log entry that will be transported
