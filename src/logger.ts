@@ -43,6 +43,11 @@ export type LogClientOptions = {
    * @default false
    */
   supressNoTransportWarning?: boolean;
+  /**
+   * Default metadata that will be merged with each log entry.
+   * These values are inherited by child loggers if no own defaultMeta is set.
+   */
+  defaultMeta?: LogMeta;
 };
 
 export type LogMeta = Record<string, string | number | boolean | null | undefined>;
@@ -83,6 +88,7 @@ export function createLogger(options: LogClientOptions): LogClient {
     level: options.level ?? LogLevel.INFO,
   };
   const transportManager = new TransportManager(options.transports || []);
+  const defaultMeta = options.defaultMeta ? sanitizeLogMeta(options.defaultMeta) : undefined;
 
   function log(level: LogLevel): LogFunction {
     // biome-ignore lint/suspicious/noExplicitAny: We need to allow any type for the log function parameters
@@ -92,6 +98,9 @@ export function createLogger(options: LogClientOptions): LogClient {
       // Split params/metadata
       const {msg, params, meta} = splitLogParams([message, ...args]);
 
+      // Merge defaultMeta with log-specific meta
+      const mergedMeta = defaultMeta || meta ? {...defaultMeta, ...meta} : undefined;
+
       // Format message like console.log with util.format
       const formattedText = args.length > 0 ? util.format(msg, ...params) : msg;
       const dateTime = new Date();
@@ -100,7 +109,7 @@ export function createLogger(options: LogClientOptions): LogClient {
         dateTime: dateTime,
         level: level,
         message: formattedText,
-        meta: meta,
+        meta: mergedMeta,
       });
     };
   }
@@ -146,6 +155,7 @@ export function createLogger(options: LogClientOptions): LogClient {
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
         transports: childOptions.transports ?? options.transports,
+        defaultMeta: childOptions.defaultMeta ?? options.defaultMeta,
       });
     },
   } as LogClient;

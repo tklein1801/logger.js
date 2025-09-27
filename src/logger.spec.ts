@@ -809,3 +809,210 @@ describe('sanitizeLogMeta', () => {
     });
   });
 });
+
+describe('Default Metadata', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  const transport = new ConsoleTransport({
+    label: 'test-logger',
+    batchSize: 1,
+    debounceMs: 0,
+  });
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  test('should merge defaultMeta with log metadata', () => {
+    const logger = createLogger({
+      label: 'test-logger',
+      defaultMeta: {
+        service: 'my-service',
+        version: '1.0.0',
+      },
+      transports: [transport],
+    });
+
+    logger.info('User logged in', {
+      userId: 123,
+      action: 'login',
+    });
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('User logged in'), {
+      service: 'my-service',
+      version: '1.0.0',
+      userId: 123,
+      action: 'login',
+    });
+  });
+
+  test('should use only defaultMeta when no log metadata provided', () => {
+    const defaultMeta: LogMeta = {
+      service: 'my-service',
+      version: '1.0.0',
+    };
+
+    const logger = createLogger({
+      label: 'test-logger',
+      defaultMeta,
+      transports: [transport],
+    });
+
+    logger.info('Simple message');
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Simple message'), defaultMeta);
+  });
+
+  test('should override defaultMeta with log metadata for same keys', () => {
+    const logger = createLogger({
+      label: 'test-logger',
+      defaultMeta: {
+        service: 'my-service',
+        version: '1.0.0',
+        environment: 'development',
+      },
+      transports: [transport],
+    });
+
+    logger.info('Environment override', {
+      environment: 'production', // Override default
+      userId: 123,
+    });
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Environment override'), {
+      service: 'my-service',
+      version: '1.0.0',
+      environment: 'production',
+      userId: 123,
+    });
+  });
+
+  test('should work without defaultMeta', () => {
+    const logger = createLogger({
+      label: 'test-logger',
+      transports: [transport],
+    });
+
+    const logMeta: LogMeta = {
+      userId: 123,
+    };
+
+    logger.info('No default meta', logMeta);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('No default meta'), logMeta);
+  });
+
+  test('should sanitize defaultMeta on logger creation', () => {
+    const transport = new ConsoleTransport({
+      label: 'test-logger',
+      batchSize: 1,
+      debounceMs: 0,
+    });
+
+    // biome-ignore lint/suspicious/noExplicitAny: Testing unsupported types
+    const unsanitizedDefaultMeta: Record<string, any> = {
+      service: 'my-service',
+      func: () => 'test', // Function should be converted to string
+      obj: {nested: 'value'}, // Object should be JSON stringified
+    };
+
+    const logger = createLogger({
+      label: 'test-logger',
+      defaultMeta: unsanitizedDefaultMeta,
+      transports: [transport],
+    });
+
+    logger.info('Sanitization test');
+
+    const expectedMeta = {
+      service: 'my-service',
+      func: '() => "test"',
+      obj: '{"nested":"value"}',
+    };
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Sanitization test'), expectedMeta);
+  });
+
+  test('should inherit defaultMeta from parent logger', () => {
+    const parentLogger = createLogger({
+      label: 'parent-logger',
+      defaultMeta: {
+        service: 'my-service',
+        version: '1.0.0',
+      },
+      transports: [transport],
+    });
+
+    const childLogger = parentLogger.child({
+      label: 'child-logger',
+    });
+
+    childLogger.info('Child log message', {userId: 123});
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Child log message'), {
+      service: 'my-service',
+      version: '1.0.0',
+      userId: 123,
+    });
+  });
+
+  test('should override parent defaultMeta when child has own defaultMeta', () => {
+    const parentLogger = createLogger({
+      label: 'parent-logger',
+      defaultMeta: {
+        service: 'parent-service',
+        version: '1.0.0',
+      },
+      transports: [transport],
+    });
+
+    const childLogger = parentLogger.child({
+      label: 'child-logger',
+      defaultMeta: {
+        service: 'child-service',
+        component: 'auth',
+      },
+    });
+
+    childLogger.info('Child with own meta', {userId: 123});
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Child with own meta'), {
+      service: 'child-service', // Child's defaultMeta takes precedence
+      component: 'auth',
+      userId: 123,
+    });
+  });
+
+  test('should work with nested child loggers', () => {
+    const rootLogger = createLogger({
+      label: 'root-logger',
+      defaultMeta: {
+        service: 'my-service',
+        version: '1.0.0',
+      },
+      transports: [transport],
+    });
+
+    const childLogger = rootLogger.child({
+      label: 'child-logger',
+    });
+
+    const grandchildLogger = childLogger.child({
+      label: 'grandchild-logger',
+      defaultMeta: {
+        component: 'auth',
+      },
+    });
+
+    grandchildLogger.info('Nested child message');
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Nested child message'), {
+      component: 'auth', // Only grandchild's defaultMeta since it overrides
+    });
+  });
+});
