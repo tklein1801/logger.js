@@ -526,7 +526,11 @@ describe('ConsoleTransport', () => {
 
       vi.runAllTimers();
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Complex operation completed'), complexMeta);
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Complex operation completed'), {
+        request: '{"method":"POST","url":"/api/users","headers":{"content-type":"application/json"}}',
+        timestamp: '"2023-01-01T00:00:00.000Z"',
+        user: '{"id":123,"name":"John Doe","roles":["admin","user"]}',
+      });
     });
 
     test('should handle custom format function that returns empty string', () => {

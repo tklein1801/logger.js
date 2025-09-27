@@ -46,9 +46,7 @@ export type LogClientOptions = {
   supressNoTransportWarning?: boolean;
 };
 
-// REVISIT: Maybe only support strings and numbers as metadata keys and values?
-// biome-ignore lint/suspicious/noExplicitAny: The metadata can be of any type, so we allow any here.
-export type LogMeta = Record<string, any>;
+export type LogMeta = Record<string, string | number | boolean | null | undefined>;
 
 // biome-ignore lint/suspicious/noExplicitAny: The log function parameters can be of any type, so we allow any here.
 export type LogFunction = (message: string, ...params: any[]) => void;
@@ -178,12 +176,48 @@ export function formatMessage(dateTime: Date, level: LogLevel, message: string, 
 }
 
 /**
- * TODO: This function needs some improvements in order to better handle metadata detection.
+ * Sanitizes metadata to ensure all values are of allowed types.
+ * Converts unsupported types to strings.
+ * @param rawMeta The raw metadata object
+ * @returns Sanitized metadata with only allowed types
+ */
+// biome-ignore lint/suspicious/noExplicitAny: We need to accept any input type to sanitize it
+export function sanitizeLogMeta(rawMeta: Record<string, any>): LogMeta {
+  const sanitized: LogMeta = {};
+
+  for (const [key, value] of Object.entries(rawMeta)) {
+    if (!value) {
+      sanitized[key] = value;
+      continue;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = value;
+      continue;
+    }
+
+    // Convert unsupported types to strings
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      // JSON.stringify returns undefined for functions and symbols, so use String() directly
+      sanitized[key] = String(value);
+    } else {
+      try {
+        sanitized[key] = JSON.stringify(value);
+      } catch {
+        sanitized[key] = String(value);
+      }
+    }
+  }
+
+  return sanitized;
+}
+
+/**
  * Splits the log parameters into a message, parameters, and optional metadata.
+ * Automatically sanitizes metadata to ensure only allowed types are included.
  * @param args The arguments passed to the log function.
  * @returns An object containing the split log parameters.
  */
-
 // biome-ignore lint/suspicious/noExplicitAny: The arguments can be of any type, so we allow any here.
 export function splitLogParams(args: any[]): {msg: string; params: any[]; meta?: LogMeta} {
   let meta: LogMeta | undefined;
@@ -193,7 +227,8 @@ export function splitLogParams(args: any[]): {msg: string; params: any[]; meta?:
     args[args.length - 1] !== null &&
     !Array.isArray(args[args.length - 1])
   ) {
-    meta = args.pop();
+    const rawMeta = args.pop();
+    meta = sanitizeLogMeta(rawMeta);
   }
   const [msg, ...params] = args;
   return {msg, params, meta};

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {createLogger, LogLevel, type LogMeta} from './logger';
+import {createLogger, LogLevel, type LogMeta, sanitizeLogMeta} from './logger';
 import {ConsoleTransport} from './transport';
 
 describe('Logger', () => {
@@ -553,6 +553,238 @@ describe('Logger', () => {
       }).not.toThrow();
 
       expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe('sanitizeLogMeta', () => {
+  test('should preserve valid string values', () => {
+    const input = {
+      message: 'hello world',
+      empty: '',
+      withSpecialChars: 'test@#$%^&*()',
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      message: 'hello world',
+      empty: '',
+      withSpecialChars: 'test@#$%^&*()',
+    });
+  });
+
+  test('should preserve valid number values', () => {
+    const input = {
+      integer: 42,
+      float: Math.PI,
+      zero: 0,
+      negative: -123,
+      infinity: Infinity,
+      negativeInfinity: -Infinity,
+      notANumber: NaN,
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      integer: 42,
+      float: Math.PI,
+      zero: 0,
+      negative: -123,
+      infinity: Infinity,
+      negativeInfinity: -Infinity,
+      notANumber: NaN,
+    });
+  });
+
+  test('should preserve valid boolean values', () => {
+    const input = {
+      isTrue: true,
+      isFalse: false,
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      isTrue: true,
+      isFalse: false,
+    });
+  });
+
+  test('should preserve null and undefined values', () => {
+    const input = {
+      nullValue: null,
+      undefinedValue: undefined,
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      nullValue: null,
+      undefinedValue: undefined,
+    });
+  });
+
+  test('should convert objects to JSON strings', () => {
+    const input = {
+      simpleObject: {name: 'John', age: 30},
+      nestedObject: {
+        user: {id: 1, profile: {email: 'test@example.com'}},
+        settings: {theme: 'dark', notifications: true},
+      },
+      emptyObject: {},
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      simpleObject: '{"name":"John","age":30}',
+      nestedObject:
+        '{"user":{"id":1,"profile":{"email":"test@example.com"}},"settings":{"theme":"dark","notifications":true}}',
+      emptyObject: '{}',
+    });
+  });
+
+  test('should convert arrays to JSON strings', () => {
+    const input = {
+      numberArray: [1, 2, 3, 4, 5],
+      stringArray: ['apple', 'banana', 'cherry'],
+      mixedArray: [1, 'two', true, null, {key: 'value'}],
+      emptyArray: [],
+      nestedArray: [
+        [1, 2],
+        [3, 4],
+      ],
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      numberArray: '[1,2,3,4,5]',
+      stringArray: '["apple","banana","cherry"]',
+      mixedArray: '[1,"two",true,null,{"key":"value"}]',
+      emptyArray: '[]',
+      nestedArray: '[[1,2],[3,4]]',
+    });
+  });
+
+  test('should convert functions to strings', () => {
+    const input = {
+      regularFunction: () => 'test',
+      demo() {
+        return 'demo';
+      },
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    // Functions should be converted to string representation
+    expect(result).toEqual({
+      regularFunction: '() => "test"',
+      demo: 'demo() {\n        return "demo";\n      }',
+    });
+  });
+
+  test('should convert Date objects to JSON strings', () => {
+    const testDate = new Date('2023-01-01T12:00:00.000Z');
+    const input = {
+      date: testDate,
+      invalidDate: new Date('invalid'),
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      date: '"2023-01-01T12:00:00.000Z"',
+      // Invalid Date gets converted to null by JSON.stringify, then to "null" string
+      invalidDate: 'null',
+    });
+  });
+
+  test('should convert Symbols to string representation', () => {
+    const input = {
+      symbol: Symbol('test'),
+      symbolWithDescription: Symbol.for('global'),
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      symbol: 'Symbol(test)',
+      symbolWithDescription: 'Symbol(global)',
+    });
+  });
+
+  test('should handle mixed data types in one object', () => {
+    const input = {
+      string: 'hello',
+      number: -42.13,
+      boolean: true,
+      nullValue: null,
+      undefinedValue: undefined,
+      object: {nested: 'value'},
+      array: [1, 2, 3],
+      func: () => 'test',
+      date: new Date('2023-01-01'),
+      symbol: Symbol('mixed'),
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      string: 'hello',
+      number: -42.13,
+      boolean: true,
+      nullValue: null,
+      undefinedValue: undefined,
+      object: '{"nested":"value"}',
+      array: '[1,2,3]',
+      func: '() => "test"',
+      date: '"2023-01-01T00:00:00.000Z"',
+      symbol: 'Symbol(mixed)',
+    });
+  });
+
+  test('should handle circular references gracefully', () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Needed for testing circular reference behavior
+    const circularObj: any = {name: 'test'};
+    circularObj.self = circularObj;
+
+    const input = {
+      circular: circularObj,
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      circular: '[object Object]',
+    });
+  });
+
+  test('should handle empty input object', () => {
+    const input = {};
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({});
+  });
+
+  test('should handle objects with special property names', () => {
+    const input = {
+      'property-with-dashes': 'value1',
+      'property with spaces': 'value2',
+      '123numericStart': 'value3',
+      '': 'empty key',
+    };
+
+    const result = sanitizeLogMeta(input);
+
+    expect(result).toEqual({
+      'property-with-dashes': 'value1',
+      'property with spaces': 'value2',
+      '123numericStart': 'value3',
+      '': 'empty key',
     });
   });
 });
