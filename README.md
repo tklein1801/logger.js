@@ -5,91 +5,64 @@
 ![NPM License](https://img.shields.io/npm/l/%40tklein1801%2Flogger.js)
 ![NPM Last Update](https://img.shields.io/npm/last-update/%40tklein1801%2Flogger.js)
 
-This package provides a logger with extensive capabilities for customization and configuration.
+A flexible and efficient JavaScript/TypeScript logging library with modular transport system, built-in batching, and debouncing capabilities for high-performance applications.
 
-## Todo
+## Features
 
-- **HttpTransport** - Provide a default HTTP transport implementation for sending logs via HTTP (base class and examples are available)
-- Rework metadata-detection (`splitLogParams`) function. In the same step change `LogMeta` to `Record<string|number, string|number|boolean>` (convert every object using `JSON.stringify`)
-- Introduce a `defaultMeta` option in order to define metadata which will be set by default for each log
-- Build some integration tests in order to validate that all components work well together
+- **Modular Architecture**: Logger, Transport Manager, and pluggable transport system
+- **Multiple Transports**: Send logs to console, files, HTTP endpoints, or custom destinations
+- **Built-in Batching**: Reduce overhead by grouping logs before transmission
+- **Debouncing**: Optimizes performance during high-frequency logging
+- **Child Loggers**: Create scoped loggers that inherit parent configuration
+- **TypeScript Support**: Fully typed with comprehensive type definitions
+- **Configurable Log Levels**: Filter logs by severity (DEBUG, INFO, WARN, ERROR)
 
-## Install
+## Installation
 
 ```bash
-npm i @klein1801/logger.js
+npm install @tklein1801/logger.js
 ```
 
-## Getting started
+## Quick Start
 
-### Start developing
-
-1. Clone repository
-
-   ```bash
-   git clone git@github.com:tklein1801/logger.js.git
-   ```
-
-2. Change directory
-
-   ```bash
-   cd logger.js/
-   ```
-
-3. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-- Execute tests
-
-  ```bash
-  npm test
-  ```
-
-- Build package
-
-  ```bash
-  npm run build
-  ```
-
-### Create an instance
+### Basic Usage
 
 ```typescript
-import {LogLevel, createLogger} from '@tklein1801/logger.js';
+import { LogLevel, createLogger } from '@tklein1801/logger.js';
 
 const logger = createLogger({
-  label: 'DemoService',
+  label: 'MyApp',
   level: LogLevel.INFO,
 });
 
-// When creating a ChildLogger based on an already defined instance, it inherits all options set in the parent instance. These options can still be overridden when creating the child.
-const childLogger = logger.child({
-  label: 'ChildScope',
-  level: LogLevel.DEBUG
-});
+logger.info('Application started');
+logger.warn('This is a warning');
+logger.error('An error occurred');
 ```
 
-### Using with Multiple Transports
+### Child Loggers
+
+Create scoped loggers that inherit parent configuration:
 
 ```typescript
-import {LogLevel, createLogger, Transport, type LogEntry} from '@tklein1801/logger.js';
+const childLogger = logger.child({
+  label: 'Database',
+  level: LogLevel.DEBUG,
+});
 
-// Create custom transports
-class ConsoleTransport extends Transport {
-  protected sendBatch(logs: LogEntry[]): void {
-    logs.forEach(log => console.log(log.message));
-  }
-}
+childLogger.debug('Database connection established');
+```
+
+### Multiple Transports
+
+Send logs to multiple destinations with different configurations:
+
+```typescript
+import { LogLevel, createLogger, Transport, type LogEntry } from '@tklein1801/logger.js';
 
 class FileTransport extends Transport {
   protected sendBatch(logs: LogEntry[]): void {
-    // Simulate writing to file
-    logs.forEach(log => {
-      // Your file writing logic here
-      console.log(`[FILE] ${log.message}`);
-    });
+    logs.forEach((log) => console.log(`[FILE] ${log.message}`));
   }
 }
 
@@ -97,248 +70,117 @@ const logger = createLogger({
   label: 'MultiTransportApp',
   level: LogLevel.INFO,
   transports: [
-    new ConsoleTransport({
-      label: 'console',
-      batchSize: 1,     // Log immediately to console
-      debounceMs: 0,    // No debouncing for console
-    }),
     new FileTransport({
       label: 'file',
-      batchSize: 10,    // Batch file writes
-      debounceMs: 1000, // Wait 1 second before writing
+      batchSize: 10,
+      debounceMs: 1000,
       level: LogLevel.WARN, // Only warnings and errors to file
-    })
-  ]
-});
-
-// This will go to both console (immediately) and file (batched)
-logger.error('This is an error message');
-logger.info('This only goes to console');
-```
-
-## Architecture & Components
-
-### Overview
-
-`logger.js` is built with a modular architecture consisting of several key components that work together to provide flexible and efficient logging:
-
-- **Logger**: The main logging interface that formats messages and sends them to transports
-- **TransportManager**: Manages multiple transports and distributes logs to all registered transports
-- **Transport**: Abstract base class that handles log batching, debouncing, and transmission
-
-### Components
-
-#### Logger
-
-The logger is the main entry point for logging operations. It formats messages and distributes them to configured transports through the TransportManager.
-
-#### Transport System
-
-The transport system is responsible for efficiently handling log transmission with built-in batching and debouncing capabilities.
-
-**Key Features:**
-- **Batching**: Groups logs together to reduce transmission overhead
-- **Debouncing**: Delays transmission until logging activity cools down to avoid overwhelming receivers
-- **Error Handling**: Automatically re-queues failed logs for retry
-- **Level Filtering**: Only processes logs that meet the minimum level requirement
-
-**Configuration Options:**
-- `batchSize`: Number of logs to batch before immediate transmission (default: 10)
-- `debounceMs`: Delay in milliseconds before sending logs (default: 1000)
-- `level`: Minimum log level to process (default: LogLevel.INFO)
-- `enabled`: Whether the transport is active (default: true)
-- `label`: Identifier for the transport
-
-#### TransportManager
-
-The TransportManager coordinates multiple transports, allowing logs to be sent to multiple destinations simultaneously (e.g., console, file, remote service).
-
-## Transports
-
-### Using Transports
-
-You can configure multiple transports when creating a logger to send logs to different destinations:
-
-```typescript
-import {LogLevel, createLogger, Transport, type LogEntry} from '@tklein1801/logger.js';
-
-// Create a custom transport (example shown below)
-class FileTransport extends Transport {
-  protected sendBatch(logs: LogEntry[]): void {
-    // Write logs to file
-    logs.forEach(log => {
-      console.log(`[FILE] ${log.message}`);
-    });
-  }
-}
-
-const logger = createLogger({
-  label: 'MyApp',
-  level: LogLevel.INFO,
-  transports: [
-    new FileTransport({
-      label: 'file-transport',
-      batchSize: 5,
-      debounceMs: 500,
-      level: LogLevel.WARN, // Only log warnings and errors to file
-    })
-  ]
+    }),
+  ],
 });
 ```
 
-### Creating Custom Transports
+## Transport System
 
-Creating custom transports is straightforward - simply extend the `Transport` base class and implement the `sendBatch` method:
+The transport system handles efficient log transmission with built-in optimizations:
+
+- **Batching**: Groups logs to reduce transmission overhead
+- **Debouncing**: Delays transmission to avoid overwhelming receivers
+- **Level Filtering**: Processes only logs meeting minimum severity
+- **Error Recovery**: Automatically re-queues failed logs for retry
+
+## Custom Transports
+
+> [!TIP]
+> Inside the `examples` folder, you can find some custom transport implementations.
+
+Create custom transports by extending the `Transport` base class:
 
 ```typescript
-import {Transport, type LogEntry, type TransportOptions} from '@tklein1801/logger.js';
+import { Transport, type LogEntry, type TransportOptions } from '@tklein1801/logger.js';
 
 class DatabaseTransport extends Transport {
-  private connectionString: string;
-
   constructor(options: TransportOptions & { connectionString: string }) {
     super(options);
-    this.connectionString = options.connectionString;
-  }
-
-  protected sendBatch(logs: LogEntry[]): Promise<void> {
-    // Send logs to database
-    return this.saveToDatabase(logs);
-  }
-
-  private async saveToDatabase(logs: LogEntry[]): Promise<void> {
-    // Your database logic here
-    for (const log of logs) {
-      await this.insertLogRecord(log);
-    }
-  }
-
-  private async insertLogRecord(log: LogEntry): Promise<void> {
-    // Implementation for inserting a single log record
-    console.log(`Saving to DB: ${log.message}`);
-  }
-}
-
-// Usage
-const dbTransport = new DatabaseTransport({
-  label: 'database-transport',
-  connectionString: 'mongodb://localhost:27017/logs',
-  batchSize: 20,        // Send 20 logs at once
-  debounceMs: 2000,     // Wait 2 seconds after last log
-  level: LogLevel.INFO,
-});
-
-const logger = createLogger({
-  label: 'MyApp',
-  transports: [dbTransport]
-});
-```
-
-### HTTP Transport Example
-
-Here's an example of creating an HTTP transport for sending logs to a remote service:
-
-```typescript
-class HttpTransport extends Transport {
-  private endpoint: string;
-  private headers: Record<string, string>;
-
-  constructor(options: TransportOptions & { 
-    endpoint: string; 
-    headers?: Record<string, string> 
-  }) {
-    super(options);
-    this.endpoint = options.endpoint;
-    this.headers = options.headers || {};
   }
 
   protected async sendBatch(logs: LogEntry[]): Promise<void> {
-    const response = await fetch(this.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.headers,
-      },
-      body: JSON.stringify({ logs }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Send logs to your database
+    for (const log of logs) {
+      await this.saveLog(log);
     }
+  }
+
+  private async saveLog(log: LogEntry): Promise<void> {
+    // Your database implementation
   }
 }
 
-// Usage
-const httpTransport = new HttpTransport({
-  label: 'http-transport',
-  endpoint: 'https://api.example.com/logs',
-  headers: { 'Authorization': 'Bearer your-token' },
-  batchSize: 15,
-  debounceMs: 1500,
+const logger = createLogger({
+  transports: [
+    new DatabaseTransport({
+      label: 'database',
+      connectionString: 'mongodb://localhost:27017/logs',
+      batchSize: 20,
+      debounceMs: 2000,
+    }),
+  ],
 });
 ```
+
+### Transport Configuration
+
+Configure transport behavior with these options:
+
+- `batchSize`: Number of logs to group before transmission (default: 10)
+- `debounceMs`: Delay before sending logs in milliseconds (default: 1000)
+- `level`: Minimum log level to process (default: LogLevel.INFO)
+- `enabled`: Whether the transport is active (default: true)
+- `label`: Transport identifier for debugging
+
+## API Reference
+
+### Log Levels
+
+```typescript
+enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+}
+```
+
+### Logger Methods
+
+- `logger.debug(message, ...args)` - Debug level logging
+- `logger.info(message, ...args)` - Info level logging
+- `logger.warn(message, ...args)` - Warning level logging
+- `logger.error(message, ...args)` - Error level logging
+- `logger.child(options)` - Create child logger with inherited config
 
 ### Transport Lifecycle
 
-Transports provide several lifecycle methods for proper resource management:
+- `transport.enable()` - Enable the transport
+- `transport.disable()` - Disable and flush remaining logs
+- `transport.flush()` - Immediately send all queued logs
+- `transport.destroy()` - Clean up resources
 
-```typescript
-// Enable/disable transport
-transport.enable();
-transport.disable(); // Also flushes remaining logs
+## Development
 
-// Update configuration
-transport.configure({
-  batchSize: 20,
-  debounceMs: 3000,
-  level: LogLevel.ERROR,
-});
+```bash
+# Install dependencies
+npm install
 
-// Manual flushing
-transport.flush(); // Immediately send all queued logs
+# Run tests
+npm test
 
-// Cleanup
-transport.destroy(); // Flush and clean up resources
+# Build package
+npm run build
+
+# Lint and format
+npm run check
 ```
-
-### Best Practices
-
-When implementing custom transports, consider these best practices:
-
-1. **Error Handling**: The base Transport class automatically re-queues failed logs. Your `sendBatch` implementation should throw errors for failed transmissions.
-
-2. **Async Operations**: If your transport performs async operations, return a Promise from `sendBatch`:
-   ```typescript
-   protected async sendBatch(logs: LogEntry[]): Promise<void> {
-     await this.asyncOperation(logs);
-   }
-   ```
-
-3. **Resource Management**: Implement proper cleanup in your transport if needed:
-   ```typescript
-   destroy(): void {
-     super.destroy(); // Always call parent destroy
-     this.cleanup(); // Your custom cleanup
-   }
-   ```
-
-4. **Configuration**: Extend `TransportOptions` for transport-specific configuration:
-   ```typescript
-   interface MyTransportOptions extends TransportOptions {
-     customOption: string;
-   }
-   ```
-
-## Utils
-
-### `isLogLevel`
-
-The `isLogLevel` function checks whether a given string represents a valid log level.
-
-### `getLogLevel`
-
-The `getLogLevel` function parses a string and returns the corresponding `LogLevel` enum. The returned enum object can be used to set the client’s log level.
-
 
 ## Credits
 
