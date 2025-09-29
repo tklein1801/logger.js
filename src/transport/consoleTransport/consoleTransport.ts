@@ -2,7 +2,7 @@ import {formatMessage, type LogClientOptions, type LogLevel, type LogMeta, print
 import {type LogEntry, Transport, type TransportOptions} from '../transport';
 
 export type ConsoleTransportOptions = TransportOptions &
-  Pick<LogClientOptions, 'label' | 'hideMeta'> & {
+  Pick<LogClientOptions, 'hideMeta'> & {
     /**
      * Formats a log message.
      * @param dateTime The date and time of the log entry.
@@ -20,7 +20,6 @@ export type ConsoleTransportOptions = TransportOptions &
  */
 export class ConsoleTransport extends Transport {
   private hideMeta: boolean;
-  private label: string;
   private customFormatFunc: ConsoleTransportOptions['format'];
 
   constructor(options: ConsoleTransportOptions) {
@@ -31,7 +30,6 @@ export class ConsoleTransport extends Transport {
       level: options.level,
       enabled: options.enabled,
     });
-    this.label = options.label;
     this.hideMeta = options.hideMeta ?? false;
     this.customFormatFunc = options.format;
   }
@@ -41,8 +39,8 @@ export class ConsoleTransport extends Transport {
       printMessage(
         log.level,
         this.customFormatFunc
-          ? this.customFormatFunc(log.dateTime, log.level, this.label, log.message, log.meta)
-          : formatMessage(log.dateTime, log.level, log.message, this.label),
+          ? this.customFormatFunc(log.dateTime, log.level, this.options.label, log.message, log.meta)
+          : formatMessage(log.dateTime, log.level, log.message, this.options.label),
         log.meta,
         this.hideMeta,
       );
