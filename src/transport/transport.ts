@@ -1,5 +1,5 @@
 import debounce from 'lodash.debounce';
-import {LogLevel, type LogMeta, shouldPublishLog} from '../logger';
+import {type LogLevel, type LogMeta, shouldPublishLog} from '../logger';
 
 /**
  * Represents a log entry that will be transported
@@ -41,14 +41,22 @@ export type TransportOptions = {
    * @default true
    */
   enabled?: boolean;
-  label: string;
+
+  /**
+   * Label for the transport, useful for distinguishing multiple transports
+   * @default '' (empty string)
+   */
+  label?: string;
 };
+
+export type InjectableTransportOptions = Pick<TransportOptions, 'level' | 'enabled' | 'label'>;
 
 /**
  * Abstract base class for log transports
  */
 export abstract class Transport {
-  protected transportOptions: Required<TransportOptions>;
+  protected transportOptions: Required<Omit<TransportOptions, 'level' | 'enabled'>> &
+    Pick<TransportOptions, 'level' | 'enabled'>;
   private logQueue: LogEntry[] = [];
   private debouncedFlush: (() => void) & {cancel: () => void};
 
@@ -56,9 +64,9 @@ export abstract class Transport {
     this.transportOptions = {
       batchSize: Math.max(1, options.batchSize ?? 10), // Ensure positive batch size
       debounceMs: Math.max(0, options.debounceMs ?? 300), // Ensure positive debounce time
-      level: options.level ?? LogLevel.INFO,
-      enabled: options.enabled ?? true,
-      label: options.label, // Ensure label is always set
+      level: options.level,
+      enabled: options.enabled,
+      label: options.label ?? '', // Ensure label is always set. When empty an label will be injected by the transport manager
     };
 
     // Initialize debounced flush function
@@ -67,7 +75,14 @@ export abstract class Transport {
     }, this.transportOptions.debounceMs);
   }
 
+  get optionsWithoutAssertion() {
+    return this.transportOptions;
+  }
+
   get options(): Required<TransportOptions> {
+    this.assertOptionIsSet('level');
+    this.assertOptionIsSet('enabled');
+
     return this.transportOptions;
   }
 
@@ -84,6 +99,8 @@ export abstract class Transport {
    * Adds a log entry to the transport queue
    */
   addLogToQueue(entry: LogEntry): void {
+    this.assertOptionIsSet('level');
+
     if (!this.transportOptions.enabled) {
       return;
     }
@@ -189,5 +206,13 @@ export abstract class Transport {
   destroy(): void {
     this.flush();
     this.debouncedFlush.cancel();
+  }
+
+  private assertOptionIsSet<K extends keyof TransportOptions>(
+    key: K,
+  ): asserts this is {transportOptions: Required<Pick<TransportOptions, K>>} {
+    if (this.transportOptions[key] === undefined) {
+      throw new Error(`${String(key)} is not set on transport`);
+    }
   }
 }

@@ -1,5 +1,5 @@
 import type {LogLevel} from '../logger';
-import type {LogEntry, Transport} from '../transport';
+import type {InjectableTransportOptions, LogEntry, Transport} from '../transport';
 
 /**
  * Manages multiple transports for a logger
@@ -60,6 +60,26 @@ export class TransportManager {
   setLogLevel(level: LogLevel) {
     for (const transport of this.transports) {
       transport.setLogLevel(level);
+    }
+  }
+
+  injectOptions(options: InjectableTransportOptions) {
+    for (const transport of this.registeredTransports) {
+      const transportOptions = transport.optionsWithoutAssertion;
+      const appliedOptions: typeof options = {};
+      if (transportOptions.label === '') {
+        appliedOptions.label = options.label;
+      }
+
+      if (transportOptions.enabled === undefined) {
+        appliedOptions.enabled = options.enabled;
+      }
+
+      if (transportOptions.level === undefined) {
+        appliedOptions.level = options.level;
+      }
+
+      transport.configure(appliedOptions);
     }
   }
 

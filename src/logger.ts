@@ -62,6 +62,7 @@ export type LogClient = {
   getLogLevel: () => LogLevel;
   getLogLevelName: () => LogLevelStrings;
   child: (options: LogClientOptions) => LogClient;
+  getTransports: () => Transport[];
 };
 
 interface LogState {
@@ -90,6 +91,36 @@ export function createLogger(options: LogClientOptions): LogClient {
   const transportManager = new TransportManager(options.transports || []);
   const defaultMeta = options.defaultMeta ? sanitizeLogMeta(options.defaultMeta) : undefined;
 
+  // Print warning if no transports are configured for this log-client
+  if (transportManager.count === 0) {
+    if (!options.supressNoTransportWarning) {
+      printMessage(
+        LogLevel.WARN,
+        formatMessage(
+          new Date(),
+          LogLevel.WARN,
+          'No transports configured. Logs will be sent to the console by default.',
+          options.label,
+        ),
+      );
+    }
+
+    transportManager.add(
+      new ConsoleTransport({
+        label: options.label,
+        level: state.level,
+        hideMeta: options.hideMeta,
+      }),
+    );
+  } else {
+    // Run option injection using the transport manager for all configured transports
+    transportManager.injectOptions({
+      enabled: state.isEnabled,
+      level: state.level,
+      label: options.label,
+    });
+  }
+
   function log(level: LogLevel): LogFunction {
     // biome-ignore lint/suspicious/noExplicitAny: We need to allow any type for the log function parameters
     return (message: string, ...args: any[]) => {
@@ -114,33 +145,13 @@ export function createLogger(options: LogClientOptions): LogClient {
     };
   }
 
-  // Print warning if no transports are configured for this log-client
-  if (transportManager.count === 0) {
-    if (!options.supressNoTransportWarning) {
-      printMessage(
-        LogLevel.WARN,
-        formatMessage(
-          new Date(),
-          LogLevel.WARN,
-          'No transports configured. Logs will be sent to the console by default.',
-          options.label,
-        ),
-      );
-    }
-
-    transportManager.add(
-      new ConsoleTransport({
-        label: options.label,
-        level: state.level,
-        hideMeta: options.hideMeta,
-      }),
-    );
-  }
-
   return {
     ...Object.fromEntries(LEVEL_STRINGS.map(level => [level, log(LogLevel[level.toUpperCase() as LogLevelStrings])])),
-    setLogLevel(level: LogLevel) {
+    setLogLevel(level: LogLevel, updateTransports = false) {
       state.level = level;
+      if (updateTransports) {
+        transportManager.setLogLevel(level);
+      }
     },
     getLogLevel() {
       return state.level;
@@ -149,14 +160,28 @@ export function createLogger(options: LogClientOptions): LogClient {
       return LogLevel[state.level] as LogLevelStrings;
     },
     child(childOptions) {
-      return createLogger({
+      const childTransports: Transport[] = childOptions.transports || options.transports || [];
+      const mergedOptions: LogClientOptions = {
         label: childOptions.label,
         disabled: childOptions.disabled ?? options.disabled,
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
-        transports: childOptions.transports ?? options.transports,
+        transports: childTransports,
         defaultMeta: childOptions.defaultMeta ?? options.defaultMeta,
-      });
+      };
+
+      for (const transport of childTransports) {
+        transport.configure({
+          label: mergedOptions.label,
+          level: mergedOptions.level,
+          enabled: mergedOptions.disabled !== true,
+        });
+      }
+
+      return createLogger(mergedOptions);
+    },
+    getTransports() {
+      return transportManager.registeredTransports;
     },
   } as LogClient;
 }

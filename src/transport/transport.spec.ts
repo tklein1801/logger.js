@@ -56,23 +56,25 @@ describe('Transport', () => {
   describe('constructor', () => {
     test('should initialize with default options', () => {
       const transport = new MockTransport({label: 'test'});
-      const options = transport.options;
+      const options = transport.optionsWithoutAssertion;
+
+      console.log(options);
 
       expect(options.batchSize).toBe(10);
       expect(options.debounceMs).toBe(300);
-      expect(options.level).toBe(LogLevel.INFO);
-      expect(options.enabled).toBe(true);
+      expect(options.level).toBe(undefined);
+      expect(options.enabled).toBe(undefined);
       expect(options.label).toBe('test');
     });
 
     test('should ensure positive batch size', () => {
       const transport = new MockTransport({label: 'test', batchSize: -5});
-      expect(transport.options.batchSize).toBe(1);
+      expect(transport.optionsWithoutAssertion.batchSize).toBe(1);
     });
 
     test('should ensure non-negative debounce time', () => {
       const transport = new MockTransport({label: 'test', debounceMs: -100});
-      expect(transport.options.debounceMs).toBe(0);
+      expect(transport.optionsWithoutAssertion.debounceMs).toBe(0);
     });
   });
 

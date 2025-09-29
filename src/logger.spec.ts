@@ -335,7 +335,6 @@ describe('Logger', () => {
 
     test('should allow child logger to enable itself when parent is disabled', () => {
       const transport = new ConsoleTransport({
-        label: 'parent-logger',
         batchSize: 1,
         debounceMs: 0,
       });
