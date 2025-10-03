@@ -162,12 +162,13 @@ export function createLogger(options: LogClientOptions): LogClient {
     child(childOptions) {
       const childTransports: Transport[] = childOptions.transports || options.transports || [];
       const mergedOptions: LogClientOptions = {
-        label: childOptions.label,
+        label: childOptions.label ?? options.label,
         disabled: childOptions.disabled ?? options.disabled,
         hideMeta: childOptions.hideMeta ?? options.hideMeta,
         level: childOptions.level ?? state.level,
         transports: childTransports,
         defaultMeta: childOptions.defaultMeta ?? options.defaultMeta,
+        supressNoTransportWarning: childOptions.supressNoTransportWarning ?? options.supressNoTransportWarning,
       };
 
       for (const transport of childTransports) {
