@@ -110,6 +110,9 @@ export function createLogger(options: LogClientOptions): LogClient {
         label: options.label,
         level: state.level,
         hideMeta: options.hideMeta,
+        enabled: state.isEnabled,
+        batchSize: 1,
+        debounceMs: 0,
       }),
     );
   } else {

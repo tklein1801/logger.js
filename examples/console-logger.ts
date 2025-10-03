@@ -4,6 +4,7 @@ const logger = createLogger({
   label: 'ConsoleLogger',
   transports: [],
   level: LogLevel.INFO,
+  hideMeta: true,
 });
 
 logger.info('This is an info message');

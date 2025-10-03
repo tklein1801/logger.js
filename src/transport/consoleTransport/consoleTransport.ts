@@ -25,8 +25,8 @@ export class ConsoleTransport extends Transport {
   constructor(options: ConsoleTransportOptions) {
     super({
       label: options.label,
-      batchSize: options.batchSize,
-      debounceMs: options.debounceMs,
+      batchSize: options.batchSize ?? 1,
+      debounceMs: options.debounceMs ?? 0,
       level: options.level,
       enabled: options.enabled,
     });
