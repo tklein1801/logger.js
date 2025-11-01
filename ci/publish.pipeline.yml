@@ -1,20 +1,51 @@
 groups:
-  - name: release
+  - name: all
     jobs:
-      - 'release-*'
+      - '*'
   - name: build
     jobs:
       - build
       - update-dependencies
-  - name: all
+  - name: release
     jobs:
-      - '*'
+      - 'release-*'
+
+meta:
+
+  gh-status-handlers: &gh-status-handlers
+    on_success:
+      put: gh-status
+      inputs: [repo]
+      no_get: true
+      params: {state: success}
+    on_failure:
+      put: gh-status
+      inputs: [repo]
+      no_get: true
+      params: {state: failure}
+    on_error:
+      put: gh-status
+      inputs: [repo]
+      no_get: true
+      params: {state: error}
+    on_abort:
+      put: gh-status
+      inputs: [repo]
+      no_get: true
+      params: {state: abort}
 
 resource_types:
   - name: discord-alert
     type: registry-image
+    check_every: 24h
     source:
       repository: ghcr.io/tklein1801/concourse-discord-alert-resource
+
+  - name: cogito
+    type: registry-image
+    check_every: 24h
+    source:
+      repository: pix4d/cogito
 
 resources:
   - name: notify
@@ -34,11 +65,19 @@ resources:
       repository: node
       tag: 20
 
+  - name: gh-status
+    type: cogito
+    check_every: never
+    source:
+      owner: ((repo_owner))
+      repo: ((repo_name))
+      access_token: ((github_pat))
+
   - name: repo
     type: git
     icon: github
     source:
-      uri: ((repo_uri))
+      uri: git@github.com:((repo_owner))/((repo_name)).git
       private_key: ((repo_private_key))
       branch: main
 
@@ -85,12 +124,7 @@ task-config: &task-release
 jobs:
   - name: build
     public: true
-    on_failure:
-      put: notify
-      params:
-        alert_type: failed
-        message: 'Build of ((service_name)) failed'
-        role: '1342563020215291936'
+    <<: *gh-status-handlers
     plan:
       - in_parallel:
           - get: node-image
@@ -98,6 +132,10 @@ jobs:
             trigger: true
           - get: version
             params: {pre: rc}
+      - put: gh-status
+        inputs: [repo]
+        params: {state: pending}
+        no_get: true
       - task: build
         image: node-image
         config:
