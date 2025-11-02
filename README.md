@@ -1,7 +1,5 @@
 # `@tklein1801/logger.js`
 
-TEST
-
 ![CI](https://ci.tools.tklein.it/api/v1/teams/main/pipelines/logger.js/badge)
 ![NPM Version](https://img.shields.io/npm/v/%40tklein1801%2Flogger.js)
 ![NPM License](https://img.shields.io/npm/l/%40tklein1801%2Flogger.js)
