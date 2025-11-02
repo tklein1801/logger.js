@@ -1,8 +1,12 @@
 {
   "name": "@tklein1801/logger.js",
-  "version": "0.0.0",
+  "version": "0.2.6",
   "description": "",
-  "keywords": ["logger.js", "logging", "utility"],
+  "keywords": [
+    "logger.js",
+    "logging",
+    "utility"
+  ],
   "author": "Thorben Klein",
   "license": "MIT",
   "homepage": "https://github.com/tklein1801/logger.js",
