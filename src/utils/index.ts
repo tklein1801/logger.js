@@ -1,3 +1,4 @@
+export * from './debounce';
 export * from './formatMessage';
 export * from './getLogLevel';
 export * from './isValidLogLevel';
