@@ -1,4 +1,4 @@
-import util from 'node:util';
+import util from 'util';
 import {LogClientBuilder} from './LogClientBuilder';
 import {ConsoleTransport, type Transport} from './transport';
 import {TransportManager} from './transportManager';
