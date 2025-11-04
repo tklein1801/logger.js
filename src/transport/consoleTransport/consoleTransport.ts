@@ -1,8 +1,9 @@
-import {formatMessage, type LogClientOptions, type LogLevel, type LogMeta, printMessage} from '../../logger';
+import type {LogClientConfig, LogLevel, LogMeta} from '../../LogClient';
+import {formatMessage, printMessage} from '../../utils';
 import {type LogEntry, Transport, type TransportOptions} from '../transport';
 
 export type ConsoleTransportOptions = TransportOptions &
-  Pick<LogClientOptions, 'hideMeta'> & {
+  Pick<LogClientConfig, 'hideMeta'> & {
     /**
      * Formats a log message.
      * @param dateTime The date and time of the log entry.

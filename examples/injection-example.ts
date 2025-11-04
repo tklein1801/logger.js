@@ -1,7 +1,7 @@
-import {createLogger, LogLevel} from '../src/logger';
+import {LogClient, LogLevel} from '../src/LogClient';
 import {ConsoleTransport} from '../src/transport';
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   label: 'MyApp',
   level: LogLevel.DEBUG,
   defaultMeta: {

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {createLogger, LogLevel, type LogMeta} from '../../logger';
+import {LogClient, LogLevel, type LogMeta} from '../../LogClient';
 import {ConsoleTransport, type ConsoleTransportOptions} from './consoleTransport';
 
 describe('ConsoleTransport', () => {
@@ -74,7 +74,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0, // No debouncing
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'integration-test',
         transports: [transport],
       });
@@ -101,7 +101,7 @@ describe('ConsoleTransport', () => {
         hideMeta: false,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'meta-test',
         transports: [transport],
       });
@@ -122,7 +122,7 @@ describe('ConsoleTransport', () => {
         hideMeta: true,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'hide-meta-test',
         transports: [transport],
       });
@@ -144,7 +144,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'level-test',
         transports: [transport],
       });
@@ -169,7 +169,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'format-test',
         transports: [transport],
       });
@@ -204,7 +204,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'custom-format-test',
         transports: [transport],
       });
@@ -241,7 +241,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'custom-format-meta-test',
         transports: [transport],
       });
@@ -280,7 +280,7 @@ describe('ConsoleTransport', () => {
         level: LogLevel.DEBUG, // Set to DEBUG to allow all log levels
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'emoji-test',
         level: LogLevel.DEBUG, // Set logger level to DEBUG as well
         transports: [transport],
@@ -344,7 +344,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 100,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'batch-test',
         transports: [transport],
       });
@@ -369,7 +369,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 50,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'debounce-test',
         transports: [transport],
       });
@@ -396,7 +396,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 1000, // Long debounce, but should be triggered by batch size
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'immediate-batch-test',
         transports: [transport],
       });
@@ -420,7 +420,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'disabled-test',
         transports: [transport],
       });
@@ -443,7 +443,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'empty-message-test',
         transports: [transport],
       });
@@ -462,7 +462,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'params-test',
         transports: [transport],
       });
@@ -481,7 +481,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'fatal-test',
         transports: [transport],
       });
@@ -501,7 +501,7 @@ describe('ConsoleTransport', () => {
         hideMeta: false,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'complex-meta-test',
         transports: [transport],
       });
@@ -543,7 +543,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'empty-format-test',
         transports: [transport],
       });
@@ -568,7 +568,7 @@ describe('ConsoleTransport', () => {
         debounceMs: 0,
       });
 
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'error-format-test',
         transports: [transport],
       });

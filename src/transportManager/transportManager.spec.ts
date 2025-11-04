@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, type MockedFunction, test, vi} from 'vitest';
-import {LogLevel} from '../logger';
+import {LogLevel} from '../LogClient';
 import {type LogEntry, Transport, type TransportOptions} from '../transport';
 import {TransportManager} from './transportManager';
 

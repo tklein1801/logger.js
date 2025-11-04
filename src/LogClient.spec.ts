@@ -1,29 +1,8 @@
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {createLogger, LogLevel, type LogMeta, sanitizeLogMeta, shouldPublishLog} from './logger';
+import {afterEach, beforeEach, describe, expect, suite, test, vi} from 'vitest';
+import {LogClient, LogLevel, type LogMeta} from './LogClient';
 import {ConsoleTransport} from './transport';
 
-describe('shouldLog (matrix)', () => {
-  test('it validates all combinations of currentLevel and logLevel', () => {
-    const allLogLevels = [LogLevel.SILENT, LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG];
-    allLogLevels.forEach(currentLevel => {
-      allLogLevels.forEach(logLevel => {
-        const result = shouldPublishLog(currentLevel, logLevel);
-
-        const expected = currentLevel === LogLevel.SILENT ? false : logLevel <= currentLevel;
-
-        if (result !== expected) {
-          // Should throw an error if the result does not match the expected value
-          throw new Error(
-            `shouldPublishLog(${LogLevel[currentLevel]}, ${LogLevel[logLevel]}) should be ${expected} but got ${result}`,
-          );
-        }
-        expect(result).toBe(expected);
-      });
-    });
-  });
-});
-
-describe('Logger', () => {
+suite('Logger', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -45,25 +24,25 @@ describe('Logger', () => {
 
   describe('createLogger', () => {
     test('should create a logger with default options', () => {
-      const logger = createLogger({label: 'test-logger'});
+      const logger = LogClient.fromConfig({label: 'test-logger'});
 
       expect(logger).toBeDefined();
-      expect(logger.getLogLevel()).toBe(LogLevel.INFO);
-      expect(logger.getLogLevelName()).toBe('INFO');
+      expect(logger.level).toBe(LogLevel.INFO);
+      expect(logger.levelName).toBe('INFO');
     });
 
     test('should create a logger with custom log level', () => {
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         level: LogLevel.WARN,
       });
 
-      expect(logger.getLogLevel()).toBe(LogLevel.WARN);
-      expect(logger.getLogLevelName()).toBe('WARN');
+      expect(logger.level).toBe(LogLevel.WARN);
+      expect(logger.levelName).toBe('WARN');
     });
 
     test('should create a disabled logger', () => {
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         disabled: true,
       });
@@ -75,7 +54,7 @@ describe('Logger', () => {
     });
 
     test('should add default ConsoleTransport when no transports provided', () => {
-      createLogger({label: 'test-logger'});
+      LogClient.fromConfig({label: 'test-logger'});
       vi.runAllTimers();
 
       // Should log a warning about no transports configured
@@ -85,7 +64,7 @@ describe('Logger', () => {
 
   describe('log levels', () => {
     test('should have all log level methods available', () => {
-      const logger = createLogger({label: 'test-logger'});
+      const logger = LogClient.fromConfig({label: 'test-logger'});
 
       expect(typeof logger.fatal).toBe('function');
       expect(typeof logger.error).toBe('function');
@@ -101,7 +80,7 @@ describe('Logger', () => {
         batchSize: 1, // Send immediately
         debounceMs: 0, // No debounce
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         level: LogLevel.DEBUG,
         transports: [transport],
@@ -124,7 +103,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         level: LogLevel.WARN,
         transports: [transport],
@@ -147,7 +126,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         level: LogLevel.SILENT,
         transports: [transport],
@@ -172,17 +151,17 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         level: LogLevel.INFO,
         transports: [transport],
       });
 
-      expect(logger.getLogLevel()).toBe(LogLevel.INFO);
+      expect(logger.level).toBe(LogLevel.INFO);
 
-      logger.setLogLevel(LogLevel.ERROR);
-      expect(logger.getLogLevel()).toBe(LogLevel.ERROR);
-      expect(logger.getLogLevelName()).toBe('ERROR');
+      logger.setLevel(LogLevel.ERROR);
+      expect(logger.level).toBe(LogLevel.ERROR);
+      expect(logger.levelName).toBe('ERROR');
 
       // Test that the new level is applied
       logger.warn('Warning message'); // Should not be logged
@@ -200,7 +179,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         transports: [transport],
       });
@@ -216,7 +195,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         transports: [transport],
       });
@@ -232,7 +211,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         transports: [transport],
       });
@@ -250,7 +229,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         hideMeta: true,
         transports: [transport],
@@ -271,7 +250,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         level: LogLevel.WARN,
         hideMeta: true,
@@ -279,13 +258,13 @@ describe('Logger', () => {
         transports: [transport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
       });
 
       // Child should inherit parent's properties
-      expect(childLogger.getLogLevel()).toBe(LogLevel.WARN);
-      expect(childLogger.getLogLevelName()).toBe('WARN');
+      expect(childLogger.level).toBe(LogLevel.WARN);
+      expect(childLogger.levelName).toBe('WARN');
     });
 
     test('should allow child logger to override parent properties', () => {
@@ -294,22 +273,22 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         level: LogLevel.WARN,
         hideMeta: true,
         transports: [transport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
         level: LogLevel.DEBUG,
         hideMeta: false,
       });
 
       // Child should have its own overridden properties
-      expect(childLogger.getLogLevel()).toBe(LogLevel.DEBUG);
-      expect(childLogger.getLogLevelName()).toBe('DEBUG');
+      expect(childLogger.level).toBe(LogLevel.DEBUG);
+      expect(childLogger.levelName).toBe('DEBUG');
     });
 
     test('should inherit disabled state from parent', () => {
@@ -318,13 +297,13 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         disabled: true,
         transports: [transport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
       });
 
@@ -338,13 +317,13 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         disabled: true,
         transports: [transport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
         disabled: false,
       });
@@ -360,12 +339,12 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         transports: [customTransport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
       });
 
@@ -387,12 +366,12 @@ describe('Logger', () => {
         debounceMs: 0,
       });
 
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         transports: [parentTransport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
         transports: [childTransport],
       });
@@ -414,31 +393,31 @@ describe('Logger', () => {
         debounceMs: 0,
       });
 
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         level: LogLevel.INFO,
         transports: [parentTransport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
         level: LogLevel.ERROR,
         transports: [childTransport],
       });
 
       // Change parent log level
-      parentLogger.setLogLevel(LogLevel.DEBUG);
+      parentLogger.setLevel(LogLevel.DEBUG);
 
       // Child should still have its own level
-      expect(parentLogger.getLogLevel()).toBe(LogLevel.DEBUG);
-      expect(childLogger.getLogLevel()).toBe(LogLevel.ERROR);
+      expect(parentLogger.level).toBe(LogLevel.DEBUG);
+      expect(childLogger.level).toBe(LogLevel.ERROR);
 
       // Change child log level
-      childLogger.setLogLevel(LogLevel.WARN);
+      childLogger.setLevel(LogLevel.WARN);
 
       // Parent should not be affected
-      expect(parentLogger.getLogLevel()).toBe(LogLevel.DEBUG);
-      expect(childLogger.getLogLevel()).toBe(LogLevel.WARN);
+      expect(parentLogger.level).toBe(LogLevel.DEBUG);
+      expect(childLogger.level).toBe(LogLevel.WARN);
     });
 
     test('should create nested child loggers', () => {
@@ -461,29 +440,29 @@ describe('Logger', () => {
         debounceMs: 0,
       });
 
-      const grandparentLogger = createLogger({
+      const grandparentLogger = LogClient.fromConfig({
         label: 'grandparent-logger',
         level: LogLevel.INFO,
         hideMeta: true,
         transports: [grandparentTransport],
       });
 
-      const parentLogger = grandparentLogger.child({
+      const parentLogger = LogClient.fromParent(grandparentLogger, {
         label: 'parent-logger',
         level: LogLevel.WARN,
         transports: [parentTransport],
       });
 
-      const childLogger = parentLogger.child({
+      const childLogger = LogClient.fromParent(parentLogger, {
         label: 'child-logger',
         level: LogLevel.DEBUG,
         transports: [childTransport],
       });
 
       // Each logger should have its own properties
-      expect(grandparentLogger.getLogLevel()).toBe(LogLevel.INFO);
-      expect(parentLogger.getLogLevel()).toBe(LogLevel.WARN);
-      expect(childLogger.getLogLevel()).toBe(LogLevel.DEBUG);
+      expect(grandparentLogger.level).toBe(LogLevel.INFO);
+      expect(parentLogger.level).toBe(LogLevel.WARN);
+      expect(childLogger.level).toBe(LogLevel.DEBUG);
 
       // Test that they can log independently
       grandparentLogger.info('Grandparent message');
@@ -508,19 +487,19 @@ describe('Logger', () => {
         debounceMs: 0,
       });
 
-      const parentLogger = createLogger({
+      const parentLogger = LogClient.fromConfig({
         label: 'parent-logger',
         hideMeta: true,
         transports: [parentTransport],
       });
 
       // Child inherits hideMeta
-      const child1 = parentLogger.child({
+      const child1 = LogClient.fromParent(parentLogger, {
         label: 'child1-logger',
       });
 
       // Child overrides hideMeta
-      const child2 = parentLogger.child({
+      const child2 = LogClient.fromParent(parentLogger, {
         label: 'child2-logger',
         hideMeta: false,
         transports: [child2Transport],
@@ -544,7 +523,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         transports: [transport],
       });
@@ -563,7 +542,7 @@ describe('Logger', () => {
         batchSize: 1,
         debounceMs: 0,
       });
-      const logger = createLogger({
+      const logger = LogClient.fromConfig({
         label: 'test-logger',
         transports: [transport],
       });
@@ -585,7 +564,7 @@ describe('sanitizeLogMeta', () => {
       withSpecialChars: 'test@#$%^&*()',
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       message: 'hello world',
@@ -605,7 +584,7 @@ describe('sanitizeLogMeta', () => {
       notANumber: NaN,
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       integer: 42,
@@ -624,7 +603,7 @@ describe('sanitizeLogMeta', () => {
       isFalse: false,
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       isTrue: true,
@@ -638,7 +617,7 @@ describe('sanitizeLogMeta', () => {
       undefinedValue: undefined,
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       nullValue: null,
@@ -656,7 +635,7 @@ describe('sanitizeLogMeta', () => {
       emptyObject: {},
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       simpleObject: '{"name":"John","age":30}',
@@ -678,7 +657,7 @@ describe('sanitizeLogMeta', () => {
       ],
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       numberArray: '[1,2,3,4,5]',
@@ -697,7 +676,7 @@ describe('sanitizeLogMeta', () => {
       },
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     // Functions should be converted to string representation
     expect(result).toEqual({
@@ -713,7 +692,7 @@ describe('sanitizeLogMeta', () => {
       invalidDate: new Date('invalid'),
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       date: '"2023-01-01T12:00:00.000Z"',
@@ -728,7 +707,7 @@ describe('sanitizeLogMeta', () => {
       symbolWithDescription: Symbol.for('global'),
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       symbol: 'Symbol(test)',
@@ -750,7 +729,7 @@ describe('sanitizeLogMeta', () => {
       symbol: Symbol('mixed'),
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       string: 'hello',
@@ -775,7 +754,7 @@ describe('sanitizeLogMeta', () => {
       circular: circularObj,
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       circular: '[object Object]',
@@ -785,7 +764,7 @@ describe('sanitizeLogMeta', () => {
   test('should handle empty input object', () => {
     const input = {};
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({});
   });
@@ -798,7 +777,7 @@ describe('sanitizeLogMeta', () => {
       '': 'empty key',
     };
 
-    const result = sanitizeLogMeta(input);
+    const result = LogClient.sanitizeLogMeta(input);
 
     expect(result).toEqual({
       'property-with-dashes': 'value1',
@@ -828,7 +807,7 @@ describe('Default Metadata', () => {
   });
 
   test('should merge defaultMeta with log metadata', () => {
-    const logger = createLogger({
+    const logger = LogClient.fromConfig({
       label: 'test-logger',
       defaultMeta: {
         service: 'my-service',
@@ -856,7 +835,7 @@ describe('Default Metadata', () => {
       version: '1.0.0',
     };
 
-    const logger = createLogger({
+    const logger = LogClient.fromConfig({
       label: 'test-logger',
       defaultMeta,
       transports: [transport],
@@ -868,7 +847,7 @@ describe('Default Metadata', () => {
   });
 
   test('should override defaultMeta with log metadata for same keys', () => {
-    const logger = createLogger({
+    const logger = LogClient.fromConfig({
       label: 'test-logger',
       defaultMeta: {
         service: 'my-service',
@@ -892,7 +871,7 @@ describe('Default Metadata', () => {
   });
 
   test('should work without defaultMeta', () => {
-    const logger = createLogger({
+    const logger = LogClient.fromConfig({
       label: 'test-logger',
       transports: [transport],
     });
@@ -920,7 +899,7 @@ describe('Default Metadata', () => {
       obj: {nested: 'value'}, // Object should be JSON stringified
     };
 
-    const logger = createLogger({
+    const logger = LogClient.fromConfig({
       label: 'test-logger',
       defaultMeta: unsanitizedDefaultMeta,
       transports: [transport],
@@ -938,7 +917,7 @@ describe('Default Metadata', () => {
   });
 
   test('should inherit defaultMeta from parent logger', () => {
-    const parentLogger = createLogger({
+    const parentLogger = LogClient.fromConfig({
       label: 'parent-logger',
       defaultMeta: {
         service: 'my-service',
@@ -947,7 +926,7 @@ describe('Default Metadata', () => {
       transports: [transport],
     });
 
-    const childLogger = parentLogger.child({
+    const childLogger = LogClient.fromParent(parentLogger, {
       label: 'child-logger',
     });
 
@@ -961,7 +940,7 @@ describe('Default Metadata', () => {
   });
 
   test('should override parent defaultMeta when child has own defaultMeta', () => {
-    const parentLogger = createLogger({
+    const parentLogger = LogClient.fromConfig({
       label: 'parent-logger',
       defaultMeta: {
         service: 'parent-service',
@@ -970,7 +949,7 @@ describe('Default Metadata', () => {
       transports: [transport],
     });
 
-    const childLogger = parentLogger.child({
+    const childLogger = LogClient.fromParent(parentLogger, {
       label: 'child-logger',
       defaultMeta: {
         service: 'child-service',
@@ -988,7 +967,7 @@ describe('Default Metadata', () => {
   });
 
   test('should work with nested child loggers', () => {
-    const rootLogger = createLogger({
+    const rootLogger = LogClient.fromConfig({
       label: 'root-logger',
       defaultMeta: {
         service: 'my-service',
@@ -997,11 +976,11 @@ describe('Default Metadata', () => {
       transports: [transport],
     });
 
-    const childLogger = rootLogger.child({
+    const childLogger = LogClient.fromParent(rootLogger, {
       label: 'child-logger',
     });
 
-    const grandchildLogger = childLogger.child({
+    const grandchildLogger = LogClient.fromParent(childLogger, {
       label: 'grandchild-logger',
       defaultMeta: {
         component: 'auth',

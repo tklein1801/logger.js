@@ -1,5 +1,5 @@
 import debounce from 'lodash.debounce';
-import {type LogLevel, type LogMeta, shouldPublishLog} from '../logger';
+import {LogClient, type LogLevel, type LogMeta} from '../LogClient';
 
 /**
  * Represents a log entry that will be transported
@@ -106,7 +106,7 @@ export abstract class Transport {
     }
 
     // Check if log level meets minimum requirement
-    if (!shouldPublishLog(this.transportOptions.level, entry.level)) {
+    if (!LogClient.shouldPublishByLogLevel(this.transportOptions.level, entry.level)) {
       return;
     }
 

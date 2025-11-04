@@ -1,4 +1,4 @@
-import type {LogLevel} from './logger';
+import type {LogLevel} from './LogClient';
 
 export const LOG_COLORS = {
   reset: '\x1b[0m',

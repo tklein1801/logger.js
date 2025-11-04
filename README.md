@@ -28,12 +28,19 @@ npm install @tklein1801/logger.js
 ### Basic Usage
 
 ```typescript
-import { LogLevel, createLogger } from '@tklein1801/logger.js';
+import { LogLevel, LogClient } from '@tklein1801/logger.js';
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   label: 'MyApp',
   level: LogLevel.INFO,
 });
+
+// or
+const anotherLogger = LogClient.builder()
+  .withLabel('MyApp')
+  .withLevel(LogLevel.DEBUG)
+  .withDefaultMeta({service: 'UserService', version: '1.0.0'})
+  .build();
 
 logger.info('Application started');
 logger.warn('This is a warning');
@@ -45,7 +52,7 @@ logger.error('An error occurred');
 Create scoped loggers that inherit parent configuration:
 
 ```typescript
-const childLogger = logger.child({
+const childLogger = LogClient.fromParent(parentLogger,{
   label: 'Database',
   level: LogLevel.DEBUG,
 });
@@ -66,7 +73,7 @@ class FileTransport extends Transport {
   }
 }
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   label: 'MultiTransportApp',
   level: LogLevel.INFO,
   transports: [
@@ -116,7 +123,7 @@ class DatabaseTransport extends Transport {
   }
 }
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   transports: [
     new DatabaseTransport({
       label: 'database',

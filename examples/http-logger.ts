@@ -1,4 +1,4 @@
-import {createLogger, type LogEntry, LogLevel, Transport, type TransportOptions} from '../src';
+import {LogClient, type LogEntry, LogLevel, Transport, type TransportOptions} from '../src';
 
 class HttpTransport extends Transport {
   private endpoint: string;
@@ -31,7 +31,7 @@ class HttpTransport extends Transport {
   }
 }
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   label: 'ConsoleLogger',
   transports: [
     new HttpTransport({

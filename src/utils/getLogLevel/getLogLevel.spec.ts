@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {LogLevel} from '../../logger';
+import {LogLevel} from '../../LogClient';
 import {getLogLevel} from './getLogLevel';
 
 describe('getLogLevel', () => {

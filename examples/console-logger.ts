@@ -1,6 +1,6 @@
-import {ConsoleTransport, createLogger, LogLevel} from '../src';
+import {ConsoleTransport, LogClient, LogLevel} from '../src';
 
-const logger = createLogger({
+const logger = LogClient.fromConfig({
   label: 'ConsoleLogger',
   transports: [],
   level: LogLevel.INFO,
@@ -11,7 +11,7 @@ logger.info('This is an info message');
 
 logger.warn('This warns about something and will provide some metadata', {field1: 'value1', field2: 'value2'});
 
-const childLogger = logger.child({
+const childLogger = LogClient.fromParent(logger, {
   label: 'ChildLogger',
   transports: [
     new ConsoleTransport({

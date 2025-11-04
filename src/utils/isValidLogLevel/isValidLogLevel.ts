@@ -1,4 +1,4 @@
-import {LogLevel} from '../../logger';
+import {LogLevel} from '../../LogClient';
 
 /**
  * Checks if a string is a valid log level.

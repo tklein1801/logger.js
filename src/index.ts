@@ -1,3 +1,3 @@
-export * from './logger';
+export * from './LogClient';
 export * from './transport';
 export * from './utils';

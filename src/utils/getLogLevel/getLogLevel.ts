@@ -1,4 +1,4 @@
-import {LogLevel} from '../../logger';
+import {LogLevel} from '../../LogClient';
 
 /**
  * Parses a log level string into a LogLevel enum.
