@@ -5,7 +5,9 @@
 ![NPM License](https://img.shields.io/npm/l/%40tklein1801%2Flogger.js)
 ![NPM Last Update](https://img.shields.io/npm/last-update/%40tklein1801%2Flogger.js)
 
-A flexible and efficient JavaScript/TypeScript logging library with modular transport system, built-in batching, and debouncing capabilities for high-performance applications.
+> [!important]
+> `@tklein1801/logger.js` is no longer used in my project. Therefore, this repository is no longer maintained (there wasn't really a maintenance before) and remains for archival purposes only.
+> A flexible and efficient JavaScript/TypeScript logging library with modular transport system, built-in batching, and debouncing capabilities for high-performance applications.
 
 ## Features
 
